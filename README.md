@@ -4,8 +4,17 @@ Endive Limited's company page and email forwarder, both Workers on the Endive Cl
 
 | Folder | Worker | What |
 |---|---|---|
-| `site/` | `endive-website` | The one-page company site on `endive.ie` and `www.endive.ie`: Tab and Soft Spot, the name story, the s.151 company particulars, contact hello@endive.ie |
+| `site/` | `endive-website` | The company site on `endive.ie` and `www.endive.ie`: the home page (Tab and Soft Spot, the name story, contact hello@endive.ie), the brand guidelines at `/brand/`, and the s.151 company particulars in every footer |
 | `email-forwarder/` | `endive-hello-forward` | Copies mail for hello@endive.ie, admin@endive.ie and hello@softspotgifts.com to both founders' Gmails |
+
+## Brand
+
+The logo, emblem, colours and type are documented at [endive.ie/brand](https://endive.ie/brand/), and every file lives in `site/public/brand/files/` (SVG, PNG, PDF, favicons, social images, Montserrat). `site/public/brand/Endive-Brand-Assets.zip` is the same files zipped; rebuild it if any of them change.
+
+- Colours: Endive Green `#26734A`, Deep Green `#13442B`, Ink `#101814`, Mint `#7DCAA1`. Montserrat is the only typeface.
+- Shared styles and scripts for every page: `site/public/assets/site.css` and `site.js`.
+- The emblem on each page is inline SVG cut into four rings, so each ring can turn on its own. They spin into place once when the emblem comes on screen, and again only if someone clicks it. Reduced-motion settings turn the animation off.
+- The site's favicons come from the brand pack and sit in `site/public/`.
 
 ## Deploy
 

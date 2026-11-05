@@ -1,0 +1,153 @@
+/* Endive: shared styles for every page.
+   Layout: a slim sticky header, full-width bands that alternate paper, white and deep green, and a footer with the s.151 particulars.
+   Brand rules (see /brand/): Montserrat only; Endive Green #26734A, Deep Green #13442B, Ink #101814, Mint #7DCAA1. */
+
+:root {
+  --green: #26734A;
+  --deep: #13442B;
+  --ink: #101814;
+  --mint: #7DCAA1;
+
+  --bg: #F5F8F6;
+  --surface: #FFFFFF;
+  --fg: #101814;
+  --muted: #4E5D55;
+  --rule: #DAE3DD;
+  --tint: #E6F0EA;
+  --accent: #26734A;
+  --accent-strong: #1D5C3B;
+  --on-accent: #FFFFFF;
+  --emblem: #26734A;
+  --band-bg: linear-gradient(135deg, #26734A 0%, #13442B 100%);
+  --band-fg: #FFFFFF;
+  --band-muted: rgba(255, 255, 255, .78);
+  --shadow: 0 1px 2px rgba(16, 24, 20, .04), 0 8px 24px -12px rgba(16, 24, 20, .12);
+
+  --font: "Montserrat", "Segoe UI", system-ui, -apple-system, sans-serif;
+  --mono: ui-monospace, "SF Mono", Consolas, monospace;
+  --gutter: max(20px, env(safe-area-inset-left, 0px));
+  --gutter-r: max(20px, env(safe-area-inset-right, 0px));
+  --max: 1160px;
+  --radius: 14px;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0B120E; --surface: #111B16; --fg: #E7EFEA; --muted: #9DB1A6; --rule: #20302A; --tint: #15241C;
+    --accent: #7DCAA1; --accent-strong: #9BD9B7; --on-accent: #0B120E; --emblem: #7DCAA1;
+    --band-bg: linear-gradient(135deg, #17583A 0%, #0C2C1C 100%);
+    --shadow: 0 1px 2px rgba(0, 0, 0, .3), 0 8px 24px -12px rgba(0, 0, 0, .5);
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0B120E; --surface: #111B16; --fg: #E7EFEA; --muted: #9DB1A6; --rule: #20302A; --tint: #15241C;
+  --accent: #7DCAA1; --accent-strong: #9BD9B7; --on-accent: #0B120E; --emblem: #7DCAA1;
+  --band-bg: linear-gradient(135deg, #17583A 0%, #0C2C1C 100%);
+  --shadow: 0 1px 2px rgba(0, 0, 0, .3), 0 8px 24px -12px rgba(0, 0, 0, .5);
+  color-scheme: dark;
+}
+
+/* ---------- Base ---------- */
+*, *::before, *::after { box-sizing: border-box; }
+html { scroll-behavior: smooth; -webkit-text-size-adjust: 100%; }
+@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+body { margin: 0; background: var(--bg); color: var(--fg); font-family: var(--font); font-size: 17px; line-height: 1.65; font-weight: 450; -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility; overflow-x: hidden; }
+h1, h2, h3 { margin: 0; line-height: 1.08; letter-spacing: -0.025em; font-weight: 700; text-wrap: balance; }
+p { margin: 0; text-wrap: pretty; }
+img, svg { display: block; max-width: 100%; }
+a { color: var(--accent); text-decoration-thickness: 1.5px; text-underline-offset: 3px; }
+a:hover { color: var(--accent-strong); }
+:focus-visible { outline: 2.5px solid var(--accent); outline-offset: 3px; border-radius: 6px; }
+::selection { background: var(--mint); color: var(--ink); }
+.skip { position: absolute; left: 12px; top: -60px; background: var(--surface); color: var(--fg); padding: 10px 14px; border-radius: 8px; z-index: 50; box-shadow: var(--shadow); }
+.skip:focus { top: 12px; }
+
+.container { max-width: var(--max); margin: 0 auto; padding-left: var(--gutter); padding-right: var(--gutter-r); }
+.eyebrow { font-size: 12.5px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: var(--accent); display: inline-flex; align-items: center; gap: 10px; }
+.eyebrow::before { content: ""; width: 18px; height: 2px; border-radius: 2px; background: currentColor; }
+.muted { color: var(--muted); }
+
+/* ---------- Header ---------- */
+.top { position: sticky; top: 0; z-index: 20; background: color-mix(in srgb, var(--bg) 82%, transparent); -webkit-backdrop-filter: saturate(1.4) blur(14px); backdrop-filter: saturate(1.4) blur(14px); border-bottom: 1px solid transparent; transition: border-color .2s; padding-top: env(safe-area-inset-top, 0px); }
+.top.scrolled { border-bottom-color: var(--rule); }
+.top .container { display: flex; align-items: center; justify-content: space-between; gap: 20px; height: 72px; }
+.brandmark { display: block; flex: none; }
+.brandmark img { height: 40px; width: auto; }
+.nav { display: flex; align-items: center; gap: 4px; }
+.nav a { color: var(--fg); text-decoration: none; font-size: 14.5px; font-weight: 600; padding: 8px 12px; border-radius: 999px; }
+.nav a:hover { background: var(--tint); color: var(--fg); }
+.nav a[aria-current="page"] { color: var(--accent); }
+.nav .nav-cta { background: var(--accent); color: var(--on-accent); margin-left: 6px; padding-inline: 16px; }
+.nav .nav-cta:hover { background: var(--accent-strong); color: var(--on-accent); }
+@media (max-width: 720px) {
+  .top .container { height: 64px; }
+  .brandmark img { height: 34px; }
+  .nav .opt { display: none; }
+}
+
+/* ---------- Buttons ---------- */
+.actions { display: flex; flex-wrap: wrap; gap: 12px; }
+.btn { display: inline-flex; align-items: center; gap: 10px; font: inherit; font-size: 15.5px; font-weight: 650; text-decoration: none; padding: 13px 22px; border-radius: 999px; border: 1.5px solid transparent; cursor: pointer; transition: background-color .15s, border-color .15s, color .15s, transform .15s; }
+.btn:active { transform: translateY(1px); }
+.btn.primary { background: var(--accent); color: var(--on-accent); }
+.btn.primary:hover { background: var(--accent-strong); color: var(--on-accent); }
+.btn.ghost { color: var(--fg); border-color: var(--rule); background: var(--surface); }
+.btn.ghost:hover { border-color: var(--accent); color: var(--fg); }
+.btn .arrow { transition: transform .2s; }
+.btn:hover .arrow { transform: translateX(3px); }
+.btn.on-band { background: #FFFFFF; color: var(--deep); }
+.btn.on-band:hover { background: var(--mint); color: var(--ink); }
+
+/* ---------- Emblem (the spinning rings) ----------
+   The icon is sliced into four concentric rings. On load each ring starts turned by a different amount, in alternating
+   directions, and settles into place with a small overshoot: outer ring first, centre last. It plays once. */
+.emblem { width: 100%; height: auto; fill: var(--emblem); overflow: visible; }
+.emblem .ring { transform-box: view-box; transform-origin: 0 0; }
+.emblem.spin { animation: emblem-in .8s cubic-bezier(.2, .7, .2, 1) both; }
+.emblem.spin .ring { animation: ring-lock var(--d) cubic-bezier(.2, 1.12, .32, 1) var(--delay, .12s) both; }
+.emblem .r3 { --from: 110deg; --d: 1.4s; }
+.emblem .r2 { --from: -160deg; --d: 1.7s; }
+.emblem .r1 { --from: 215deg; --d: 2s; }
+.emblem .r0 { --from: -280deg; --d: 2.3s; }
+
+.emblem.waiting { opacity: 0; }
+@keyframes ring-lock { from { transform: rotate(var(--from)); } to { transform: rotate(0deg); } }
+@keyframes emblem-in { from { opacity: 0; transform: scale(.9) rotate(-8deg); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) {
+  .emblem.spin, .emblem.spin .ring { animation: none; }
+}
+
+/* ---------- Reveal on scroll (only when JS runs) ---------- */
+.js .reveal { opacity: 0; transform: translateY(18px); transition: opacity .7s cubic-bezier(.2, .7, .2, 1), transform .7s cubic-bezier(.2, .7, .2, 1); }
+.js .reveal.in { opacity: 1; transform: none; }
+@media (prefers-reduced-motion: reduce) { .js .reveal { opacity: 1; transform: none; transition: none; } }
+
+/* ---------- Sections ---------- */
+.section { padding-block: clamp(72px, 10vw, 128px); }
+.section-head { display: grid; gap: 16px; margin-bottom: clamp(36px, 5vw, 56px); max-width: 720px; }
+.section-head h2 { font-size: clamp(30px, 4.4vw, 46px); }
+.section-head p { color: var(--muted); font-size: 18px; }
+
+/* ---------- Band (deep green) ---------- */
+.band { background: var(--band-bg); color: var(--band-fg); position: relative; overflow: hidden; isolation: isolate; }
+.band .eyebrow { color: var(--mint); }
+.band a { color: #FFFFFF; }
+.band-mark { position: absolute; z-index: -1; fill: var(--mint); opacity: .09; width: min(720px, 90vw); right: -12%; top: 50%; transform: translateY(-50%) rotate(12deg); pointer-events: none; }
+
+/* ---------- Footer ---------- */
+.foot { border-top: 1px solid var(--rule); padding-block: 56px calc(40px + env(safe-area-inset-bottom, 0px)); font-size: 14.5px; color: var(--muted); }
+.foot .container { display: grid; gap: 32px; grid-template-columns: 1.2fr 2fr; align-items: start; }
+.foot-brand { display: grid; gap: 16px; justify-items: start; }
+.foot-brand img { height: 44px; width: auto; }
+.foot-links { display: flex; flex-wrap: wrap; gap: 6px 20px; }
+.foot-links a { color: var(--fg); font-weight: 600; text-decoration: none; }
+.foot-links a:hover { color: var(--accent); }
+.legal { display: grid; gap: 6px; line-height: 1.6; }
+.legal strong { color: var(--fg); font-weight: 600; }
+@media (max-width: 760px) { .foot .container { grid-template-columns: 1fr; } }
+
+/* ---------- Copy-to-clipboard chips ---------- */
+.copy { font: inherit; font-family: var(--mono); font-size: 13px; background: none; border: 1px solid var(--rule); color: inherit; padding: 3px 9px; border-radius: 999px; cursor: pointer; transition: border-color .15s, background-color .15s; }
+.copy:hover { border-color: currentColor; }
+.copy.done { background: var(--mint); border-color: var(--mint); color: var(--ink); }
