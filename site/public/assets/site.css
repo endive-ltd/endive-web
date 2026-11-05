@@ -99,24 +99,16 @@ a:hover { color: var(--accent-strong); }
 .btn.on-band { background: #FFFFFF; color: var(--deep); }
 .btn.on-band:hover { background: var(--mint); color: var(--ink); }
 
-/* ---------- Emblem (the spinning rings) ----------
-   The icon is sliced into four concentric rings. On load each ring starts turned by a different amount, in alternating
-   directions, and settles into place with a small overshoot: outer ring first, centre last. It plays once. */
+/* ---------- Emblem ----------
+   The icon is built from its four interlaced ribbons. site.js turns each ribbon once around its own axis on load,
+   one after another, and replays the turn on click. Without JavaScript, or with reduced motion, it simply sits still. */
 .emblem { width: 100%; height: auto; fill: var(--emblem); overflow: visible; }
-.emblem .ring { transform-box: view-box; transform-origin: 0 0; }
-.emblem.spin { animation: emblem-in .8s cubic-bezier(.2, .7, .2, 1) both; }
-.emblem.spin .ring { animation: ring-lock var(--d) cubic-bezier(.2, 1.12, .32, 1) var(--delay, .12s) both; }
-.emblem .r3 { --from: 110deg; --d: 1.4s; }
-.emblem .r2 { --from: -160deg; --d: 1.7s; }
-.emblem .r1 { --from: 215deg; --d: 2s; }
-.emblem .r0 { --from: -280deg; --d: 2.3s; }
-
+.emblem.spin { animation: emblem-in .7s cubic-bezier(.2, .7, .2, 1) both; }
+.emblem .rings { display: none; }
+.emblem.turning .rings { display: inline; }
 .emblem.waiting { opacity: 0; }
-@keyframes ring-lock { from { transform: rotate(var(--from)); } to { transform: rotate(0deg); } }
-@keyframes emblem-in { from { opacity: 0; transform: scale(.9) rotate(-8deg); } to { opacity: 1; transform: none; } }
-@media (prefers-reduced-motion: reduce) {
-  .emblem.spin, .emblem.spin .ring { animation: none; }
-}
+@keyframes emblem-in { from { opacity: 0; transform: scale(.94); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { .emblem.spin { animation: none; } }
 
 /* ---------- Reveal on scroll (only when JS runs) ---------- */
 .js .reveal { opacity: 0; transform: translateY(18px); transition: opacity .7s cubic-bezier(.2, .7, .2, 1), transform .7s cubic-bezier(.2, .7, .2, 1); }
