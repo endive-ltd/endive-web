@@ -61,7 +61,8 @@
     '}',
     // ring k at point q, rolled by th: returns (ink, light). Each ring runs between its two pinched ends (t0..t1 on
     // the arcs through its poles): tau along it, u across it between its own two edges (emblem-edges.png). The
-    // visible ring is the front of a wheel, phi = asin((2 tau - 1) sin PHM); rolling the wheel slides the surface
+    // visible ring is the front of a wheel; the grooves move at an even pace along it (phi = (2 tau - 1) PHM) so they keep
+    // the logo's slope, while the lighting follows the wheel's true shape. Rolling the wheel slides the surface
     // along the ring, so grooves keep their place across it while they travel
     'vec2 ring(vec2 q, vec2 M, vec2 E, vec2 N, float L, vec2 tr, float row, float th, float dth, vec4 ch) {',
     '  vec2 d = q - M; float a = dot(d, E); float b = dot(d, N);',
@@ -76,7 +77,8 @@
     // distance along the ring (0..1), so a steady wheel turn moves the grooves steadily
     '  float sg = mix(dec(texture2D(uEdges, vec2((i0 + 0.5) / 1024.0, row + 0.5)).rg), dec(texture2D(uEdges, vec2((i1 + 0.5) / 1024.0, row + 0.5)).rg), x - i0);',
     '  float w = ed.y - ed.x; float u = (lam - ed.x) / (abs(w) < 0.001 ? 0.001 : w);',
-    '  float phi = asin(clamp(2.0 * sg - 1.0, -1.0, 1.0) * sin(uPhm));',
+    '  float phi = (2.0 * sg - 1.0) * uPhm;',
+    '  float phl = asin(clamp(2.0 * sg - 1.0, -1.0, 1.0) * sin(uPhm));',
     '  float y = (u - uU.x) / (uU.y - uU.x);',
     '  float ink = 0.0;',
     '  for (int i = 0; i < 8; i++) {',
@@ -87,7 +89,7 @@
     // lighting: the tread of a wheel tilted by GAM, curved across its width
     '  vec3 e3 = vec3(E, 0.0), b3 = vec3(-N, 0.0), z3 = vec3(0.0, 0.0, 1.0);',
     '  vec3 dm = sin(GAM) * z3 + cos(GAM) * b3, ax = cos(GAM) * z3 - sin(GAM) * b3;',
-    '  vec3 rad = sin(phi) * e3 + cos(phi) * dm;',
+    '  vec3 rad = sin(phl) * e3 + cos(phl) * dm;',
     '  float psi = PSI * (2.0 * clamp(u, 0.0, 1.0) - 1.0);',
     '  vec3 nrm = cos(psi) * rad + sin(psi) * ax;',
     '  return vec2(ink, clamp(dot(nrm, LIGHT), 0.0, 1.0));',
