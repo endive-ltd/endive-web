@@ -1,14 +1,15 @@
 // The Endive emblem's spin.
 //
 // The emblem is four interlaced rings. Each ring is drawn as the tread of a wheel seen at an angle: its two pinched
-// ends are where the tread turns away round the back of the wheel. On arrival all four rings roll once on their
-// axles like tyres, starting a moment apart: each outline stays where it is while its grooves travel along the ring,
-// following their own curves, and pass under the next ring at its edge. The rings are lit as solid objects while they
-// turn, with a little motion blur. When every ring has come full circle the emblem is exactly the logo again.
+// ends are where the tread turns away round the back of the wheel. On arrival all four rings roll on their axles
+// like tyres, starting a moment apart and turning just far enough for one set of grooves to pass. Each outline stays
+// where it is while its grooves travel along the ring, following its curve, and pass under the next ring at its edge.
+// The rings are lit as solid objects while they turn, with a little motion blur, and come to rest exactly on the logo.
 //
 // Each ring has its own coordinates fitted to its two edges (emblem-edges.png), so grooves keep their place across
-// the ring as they travel. The front of each wheel carries the logo's own grooves; the part the logo never shows
-// carries newly drawn grooves in the same hand, two cascades of brush-stroke grooves (emblem-rings.png). Each border between rings starts at a notch in the outline, runs through the gap between the two
+// the ring as they travel. Each wheel carries the logo's own groove set three times, 120 degrees apart, so a third of
+// a turn brings an identical set exactly into the logo's place (emblem-rings.png). Lighting is per ring with crisp
+// borders between rings (emblem-tint.png). Each border between rings starts at a notch in the outline, runs through the gap between the two
 // rings and follows the front ring's strands to a corner of the hole (emblem-windows.png); the four gaps belong to no
 // ring and never move. A WebGL canvas laid over the emblem draws the turn; at rest it matches the SVG, and when the
 // turn ends the canvas goes and the plain SVG is left. No WebGL, reduced motion or a failed load: the emblem stays still.
@@ -16,7 +17,7 @@
   var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)');
   var emblems = [].slice.call(document.querySelectorAll('svg.emblem.spin'));
   if (!emblems.length) return;
-  var DELAY = [0, 120, 240, 360], DUR = 2800, LEAD = 500, FADE = 200;
+  var DELAY = [0, 120, 240, 360], DUR = 2800, SPIN = 2 * Math.PI / 3, LEAD = 500, FADE = 200;
   var VIEW = 1200;          // half-size of the canvas in emblem units: the same box as the SVG
   var BASE = '/assets/';
 
@@ -42,7 +43,7 @@
     'uniform sampler2D uRings, uWin, uTint, uRim, uShade, uEdges;',
     'uniform vec2 uM[4], uE[4], uN[4], uT[4];',
     'uniform float uLmin, uLmax, uPhm; uniform vec2 uU;',
-    'uniform float uL[4], uTh[4], uDTh[4], uAct;',
+    'uniform float uL[4], uTh[4], uDTh[4], uAct, uSpin;',
     'uniform float uExt;',
     'uniform vec3 uColor;',
     'const float TAU = 6.2831853, PI = 3.1415927;',
@@ -100,7 +101,7 @@
     '  for (int k = 0; k < 4; k++) {',
     '    vec4 ch = chan(k); float w = dot(win, ch); float wt = dot(tw, ch);',
     '    if (w < 0.002 && wt < 0.002) continue;',
-    '    float p = max(sin(0.5 * clamp(uTh[k] / TAU, 0.0, 1.0) * TAU), 0.0);',
+    '    float p = max(sin(PI * clamp(uTh[k] / uSpin, 0.0, 1.0)), 0.0);',
     '    vec2 r = ring(vP, uM[k], uE[k], uN[k], uL[k], uT[k], (float(k) + 0.5) / 8.0, uTh[k], uDTh[k], ch);',
     '    float spin = pow(p, 0.6);',
     '    float tone = (1.0 + spin * (-0.45 + 0.65 * r.y)) * (1.0 - 0.32 * pow(uAct, 0.6) * dot(shd, ch));',
@@ -170,12 +171,13 @@
     gl.uniform3fv(U('uColor'), rgb(getComputedStyle(svg).fill));
     gl.viewport(0, 0, cv.width, cv.height);
     var uTh = U('uTh'), uDTh = U('uDTh'), uAct = U('uAct');
+    gl.uniform1f(U('uSpin'), SPIN);
     host.appendChild(cv);
     return {
       canvas: cv,
       draw: function (th, dth) {
         gl.uniform1fv(uTh, th); gl.uniform1fv(uDTh, dth || [0, 0, 0, 0]);
-        var act = 0; for (var i = 0; i < 4; i++) act = Math.max(act, Math.sin(th[i] / 2));
+        var act = 0; for (var i = 0; i < 4; i++) act = Math.max(act, Math.sin(Math.PI * th[i] / SPIN));
         gl.uniform1f(uAct, act);
         gl.clearColor(0, 0, 0, 0); gl.clear(gl.COLOR_BUFFER_BIT); gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
       },
@@ -210,8 +212,8 @@
         for (var k = 0; k < 4; k++) {
           var u = Math.min(1, Math.max(0, (el - DELAY[k]) / DUR));
           var u0 = Math.min(1, Math.max(0, (el - step * 0.7 - DELAY[k]) / DUR));
-          th[k] = u >= 1 ? 0 : 2 * Math.PI * ease(u);
-          dth[k] = u >= 1 ? 0 : 2 * Math.PI * (ease(u) - ease(u0));
+          th[k] = u >= 1 ? 0 : SPIN * ease(u);
+          dth[k] = u >= 1 ? 0 : SPIN * (ease(u) - ease(u0));
         }
         layer.draw(th, dth);
         if (el < end) { requestAnimationFrame(frame); return; }
