@@ -101,7 +101,7 @@ a:hover { color: var(--accent-strong); }
 
 /* ---------- Emblem ----------
    Inline SVG of the exact icon. On arrival emblem-spin.js lays a canvas over it and rolls each of the four rings once
-   round its own axis, like a wheel; then the canvas goes and the SVG is left. Without WebGL, or with reduced motion, it stays still. */
+   on its axle, like a tyre; then the canvas goes and the SVG is left. Without WebGL, or with reduced motion, it stays still. */
 .emblem { width: 100%; height: auto; fill: var(--emblem); overflow: visible; }
 .emblem.spin { animation: emblem-in .5s ease-out both; }
 .emblem.waiting { opacity: 0; }

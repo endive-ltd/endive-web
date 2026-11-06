@@ -1,15 +1,16 @@
 // The Endive emblem's spin.
 //
-// The emblem is four interlaced rings. Each ring is drawn as a round, doughnut-like surface whose axis runs through
-// its two pinched ends (the ring's "hole"). On arrival each ring, one after another, turns once on that axis like a
-// wheel: its outline stays where it is while its striped surface rolls round, lit as a solid object. When every
+// The emblem is four interlaced rings. Each ring is drawn as the tread of a wheel seen at an angle: its two pinched
+// ends are where the tread turns away round the back of the wheel. On arrival each ring, one after another, rolls
+// once on its axle like a tyre: the outline stays where it is while its grooves travel along the ring, following their
+// own curves, and pass under the next ring at its edge. The rings are lit as solid objects while they turn. When every
 // ring has come full circle the emblem is exactly the logo again.
 //
-// The stripes are the logo's own grooves, sampled straight from the artwork into each ring's surface coordinates
-// (angle round the axis, distance along the ring) and repeated evenly round the parts of the ring the logo never
-// shows (emblem-rings.png). A WebGL canvas laid over the emblem draws the turn; at rest it matches the SVG, and when
-// the turn ends the canvas goes and the plain SVG is left.
-// No WebGL, reduced motion or a failed load: the emblem simply stays still.
+// The grooves are the logo's own, sampled straight from the artwork into each wheel's coordinates (angle round the
+// wheel, position across the tread) and repeated round the part of the wheel the logo never shows
+// (emblem-rings.png). The borders between rings run along the front ring's own strands (emblem-windows.png). A WebGL
+// canvas laid over the emblem draws the turn; at rest it matches the SVG, and when the turn ends the canvas goes and
+// the plain SVG is left. No WebGL, reduced motion or a failed load: the emblem simply stays still.
 (function () {
   var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)');
   var emblems = [].slice.call(document.querySelectorAll('svg.emblem.spin'));
@@ -26,8 +27,8 @@
     if (!loading) {
       loading = Promise.all([fetch(BASE + 'emblem-spin.json').then(function (r) { return r.json(); }),
         img(BASE + 'emblem-rings.png'), img(BASE + 'emblem-windows.png'), img(BASE + 'emblem-tint.png'), img(BASE + 'emblem-rim.png'),
-        img(BASE + 'emblem-taper.png'), img(BASE + 'emblem-fade.png')])
-        .then(function (a) { return { geo: a[0], rings: a[1], win: a[2], tint: a[3], rim: a[4], taper: a[5], fade: a[6] }; });
+        img(BASE + 'emblem-shade.png')])
+        .then(function (a) { return { geo: a[0], rings: a[1], win: a[2], tint: a[3], rim: a[4], shade: a[5] }; });
     }
     return loading;
   }
@@ -37,13 +38,14 @@
   var FS = [
     'precision highp float;',
     'varying vec2 vP;',
-    'uniform sampler2D uRings, uWin, uTint, uRim, uTaper, uFade;',
-    'uniform vec2 uM[4], uE[4], uN[4];',
-    'uniform float uL[4], uS[4], uTh[4];',
+    'uniform sampler2D uRings, uWin, uTint, uRim, uShade;',
+    'uniform vec2 uM[4], uE[4], uN[4], uLam[4];',
+    'uniform float uL[4], uTh[4], uAct;',
     'uniform float uExt;',
     'uniform vec3 uColor;',
-    'const float TAU = 6.2831853;',
+    'const float TAU = 6.2831853, PI = 3.1415927;',
     'const vec3 LIGHT = vec3(-0.4682, -0.6763, 0.5684);',
+    'const float GAM = 0.8378, PSI = 1.1345;',      // wheel tilt 48 deg; tread curves 65 deg either side
     'vec4 chan(int k) { return vec4(k == 0 ? 1.0 : 0.0, k == 1 ? 1.0 : 0.0, k == 2 ? 1.0 : 0.0, k == 3 ? 1.0 : 0.0); }',
     'vec2 uvOf(vec2 q) { return (q + uExt) / (2.0 * uExt); }',
     // position along the arc through the ring's two ends, measured from the first end (0) to the second (1)
@@ -53,35 +55,25 @@
     '  float span = thr ? sccw : TAU - sccw; float pos = thr ? mod(ang - angA, TAU) : mod(angA - ang, TAU);',
     '  return pos / span;',
     '}',
-    // point at t on the arc with sagitta s, in the ring frame (along the ends, across them)
-    'vec2 arcPt(float s, float t, float L) {',
-    '  float kk = (s * s - L * L) / (2.0 * s);',
-    '  float angA = atan(-kk, -L), angB = atan(-kk, L), angP = atan(s - kk, 0.0);',
-    '  float sccw = mod(angB - angA, TAU); bool thr = mod(angP - angA, TAU) < sccw;',
-    '  float span = thr ? sccw : TAU - sccw; float ang = thr ? angA + t * span : angA - t * span;',
-    '  float R = abs(s - kk); return vec2(R * cos(ang), kk + R * sin(ang));',
-    '}',
-    // ring k at point q, turned by th: returns (ink, light). Near a neighbouring ring or the outline, grooves taper
-    // away (by thresholding a blurred copy) so they slide under rather than being sliced off
-    'vec2 ring(vec2 q, vec2 M, vec2 E, vec2 N, float L, float S, float th, float cut, vec4 ch) {',
+    // ring k at point q, rolled by th: returns (ink, light). The strand through q is the arc with sagitta lam; along
+    // it, t is the angle round the wheel (phi = asin(2t - 1)); rolling moves the grooves along their arcs
+    'vec2 ring(vec2 q, vec2 M, vec2 E, vec2 N, float L, vec2 lr, float th, vec4 ch) {',
     '  vec2 d = q - M; float a = dot(d, E); float b = dot(d, N);',
     '  if (abs(b) < 0.001) b = 0.001;',
     '  float kk = (a * a + b * b - L * L) / (2.0 * b); float R = sqrt(L * L + kk * kk);',
     '  float lam = b > 0.0 ? kk + R : kk - R;',
     '  float t = arcT(a, b, lam, kk, L);',
     '  if (t < 0.0 || t > 1.0) return vec2(0.0, 0.0);',
-    // the strand through q is the meridian at angle al round the ring's axis
-    '  float al = acos(clamp(lam / S, -1.0, 1.0));',
-    '  float x = fract((al + th) / TAU);',
-    '  float g = 1.0 - dot(texture2D(uRings, vec2(x, t)), ch);',
-    '  float gb = dot(texture2D(uTaper, vec2(x, t)), ch);',
-    '  float ink = 1.0 - g * smoothstep(cut - 0.04, cut + 0.04, gb);',
-    // lighting: the surface normal of the round ring at this meridian
-    '  vec2 c = arcPt(S, t, L); float sg = sign(S); float s = abs(S);',
-    '  float kc = (s * s - L * L) / (2.0 * s); float Rc = s - kc;',
-    '  float ne = c.x / Rc, nd = (c.y * sg - kc) / Rc;',
-    '  vec2 sh = N * sg;',
-    '  vec3 nrm = ne * vec3(E, 0.0) + nd * (cos(al) * vec3(sh, 0.0) + sin(al) * vec3(0.0, 0.0, 1.0));',
+    '  float phi = asin(clamp(2.0 * t - 1.0, -1.0, 1.0));',
+    '  float v = (lam - lr.x) / (lr.y - lr.x);',
+    '  float x = fract((phi - th + PI) / TAU);',
+    '  float ink = dot(texture2D(uRings, vec2(x, v)), ch);',
+    // lighting: the tread of a wheel tilted by GAM, curved across its width
+    '  vec3 e3 = vec3(E, 0.0), b3 = vec3(-N, 0.0), z3 = vec3(0.0, 0.0, 1.0);',
+    '  vec3 dm = sin(GAM) * z3 + cos(GAM) * b3, ax = cos(GAM) * z3 - sin(GAM) * b3;',
+    '  vec3 rad = sin(phi) * e3 + cos(phi) * dm;',
+    '  float psi = PSI * (2.0 * clamp(v, 0.0, 1.0) - 1.0);',
+    '  vec3 nrm = cos(psi) * rad + sin(psi) * ax;',
     '  return vec2(ink, clamp(dot(nrm, LIGHT), 0.0, 1.0));',
     '}',
     'void main() {',
@@ -89,15 +81,15 @@
     '  if (uv.x < 0.0 || uv.y < 0.0 || uv.x > 1.0 || uv.y > 1.0) { gl_FragColor = vec4(0.0); return; }',
     '  vec4 win = texture2D(uWin, uv); vec4 tw = texture2D(uTint, uv);',
     '  float ink = 0.0; vec3 col = vec3(0.0); float ws = 0.0;',
+    '  vec4 shd = texture2D(uShade, uv);',
     '  for (int k = 0; k < 4; k++) {',
     '    vec4 ch = chan(k); float w = dot(win, ch); float wt = dot(tw, ch);',
     '    if (w < 0.002 && wt < 0.002) continue;',
     '    float p = max(sin(0.5 * clamp(uTh[k] / TAU, 0.0, 1.0) * TAU), 0.0);',
-    '    float cut = pow(p, 0.2) * (1.0 - dot(texture2D(uFade, uv), ch));',
-    '    vec2 r = ring(vP, uM[k], uE[k], uN[k], uL[k], uS[k], uTh[k], cut, ch);',
+    '    vec2 r = ring(vP, uM[k], uE[k], uN[k], uL[k], uLam[k], uTh[k], ch);',
     '    float spin = pow(p, 0.6);',
-    '    float tone = 1.0 + spin * (-0.42 + 0.62 * r.y);',
-    '    vec3 cc = clamp(uColor * tone + spin * 0.18 * pow(r.y, 12.0), 0.0, 1.0);',
+    '    float tone = (1.0 + spin * (-0.45 + 0.65 * r.y)) * (1.0 - 0.32 * pow(uAct, 0.6) * dot(shd, ch));',
+    '    vec3 cc = clamp(uColor * tone + spin * 0.16 * pow(r.y, 14.0), 0.0, 1.0);',
     '    ink += w * r.x; col += wt * cc; ws += wt;',
     '  }',
     '  ink = clamp(max(ink, texture2D(uRim, uv).r), 0.0, 1.0);',
@@ -146,25 +138,27 @@
     gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]), gl.STATIC_DRAW);
     var loc = gl.getAttribLocation(prog, 'p'); gl.enableVertexAttribArray(loc); gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
     texture(gl, A.rings, 0, true); texture(gl, A.win, 1, false); texture(gl, A.tint, 2, false); texture(gl, A.rim, 3, false);
-    texture(gl, A.taper, 4, true); texture(gl, A.fade, 5, false);
+    texture(gl, A.shade, 4, false);
     var U = function (n) { return gl.getUniformLocation(prog, n); };
     gl.uniform1i(U('uRings'), 0); gl.uniform1i(U('uWin'), 1); gl.uniform1i(U('uTint'), 2); gl.uniform1i(U('uRim'), 3);
-    gl.uniform1i(U('uTaper'), 4); gl.uniform1i(U('uFade'), 5);
+    gl.uniform1i(U('uShade'), 4);
     var g = A.geo.rings;
     var flat = function (key) { var o = []; g.forEach(function (x) { o.push(x[key][0], x[key][1]); }); return o; };
     gl.uniform2fv(U('uM'), flat('M')); gl.uniform2fv(U('uE'), flat('e')); gl.uniform2fv(U('uN'), flat('n'));
     gl.uniform1fv(U('uL'), g.map(function (x) { return x.L; }));
-    gl.uniform1fv(U('uS'), g.map(function (x) { return x.S; }));
+    gl.uniform2fv(U('uLam'), flat('lam'));
     gl.uniform1f(U('uExt'), A.geo.ext);
     gl.uniform1f(U('uView'), VIEW);
     gl.uniform3fv(U('uColor'), rgb(getComputedStyle(svg).fill));
     gl.viewport(0, 0, cv.width, cv.height);
-    var uTh = U('uTh');
+    var uTh = U('uTh'), uAct = U('uAct');
     host.appendChild(cv);
     return {
       canvas: cv,
       draw: function (th) {
         gl.uniform1fv(uTh, th);
+        var act = 0; for (var i = 0; i < 4; i++) act = Math.max(act, Math.sin(th[i] / 2));
+        gl.uniform1f(uAct, act);
         gl.clearColor(0, 0, 0, 0); gl.clear(gl.COLOR_BUFFER_BIT); gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
       },
       destroy: function () {
