@@ -43,7 +43,7 @@
     'uniform sampler2D uRings, uWin, uTint, uRim, uShade, uEdges;',
     'uniform vec2 uM[4], uE[4], uN[4], uT[4];',
     'uniform float uLmin, uLmax, uPhm; uniform vec2 uU;',
-    'uniform float uL[4], uTh[4], uDTh[4], uAct, uSpin;',
+    'uniform float uL[4], uTh[4], uDTh[4], uThr[4], uAct, uSpin;',
     'uniform float uExt;',
     'uniform vec3 uColor;',
     'const float TAU = 6.2831853, PI = 3.1415927;',
@@ -64,7 +64,7 @@
     // visible ring is the front of a wheel; the grooves move at an even pace along it (phi = (2 tau - 1) PHM) so they keep
     // the logo's slope, while the lighting follows the wheel's true shape. Rolling the wheel slides the surface
     // along the ring, so grooves keep their place across it while they travel
-    'vec2 ring(vec2 q, vec2 M, vec2 E, vec2 N, float L, vec2 tr, float row, float th, float dth, vec4 ch) {',
+    'vec2 ring(vec2 q, vec2 M, vec2 E, vec2 N, float L, vec2 tr, float row, float th, float dth, float thr, vec4 ch) {',
     '  vec2 d = q - M; float a = dot(d, E); float b = dot(d, N);',
     '  if (abs(b) < 0.001) b = 0.001;',
     '  float kk = (a * a + b * b - L * L) / (2.0 * b); float R = sqrt(L * L + kk * kk);',
@@ -79,11 +79,14 @@
     '  float w = ed.y - ed.x; float u = (lam - ed.x) / (abs(w) < 0.001 ? 0.001 : w);',
     '  float phi = (2.0 * sg - 1.0) * uPhm;',
     '  float phl = asin(clamp(2.0 * sg - 1.0, -1.0, 1.0) * sin(uPhm));',
-    '  float y = (u - uU.x) / (uU.y - uU.x);',
+    '  float y = clamp((u - uU.x) / (uU.y - uU.x), 0.5 / 512.0, 1.0 - 0.5 / 512.0) * 0.5;',
     '  float ink = 0.0;',
     '  for (int i = 0; i < 8; i++) {',
     '    float xx = fract((phi - (th - dth * float(i) / 7.0) + PI) / TAU);',
-    '    ink += dot(texture2D(uRings, vec2(xx, y)), ch);',
+    '    float s = dot(texture2D(uRings, vec2(xx, y)), ch);',
+    // while the wheel rolls, its plain stretch takes extra grooves that open out from their centre lines
+    '    if (thr < 1.04) s = min(s, 1.0 - clamp(0.5 + (dot(texture2D(uRings, vec2(xx, y + 0.5)), ch) - thr) * 16.0, 0.0, 1.0));',
+    '    ink += s;',
     '  }',
     '  ink /= 8.0;',
     // lighting: the tread of a wheel tilted by GAM, curved across its width
@@ -104,7 +107,7 @@
     '    vec4 ch = chan(k); float w = dot(win, ch); float wt = dot(tw, ch);',
     '    if (w < 0.002 && wt < 0.002) continue;',
     '    float p = max(sin(PI * clamp(uTh[k] / uSpin, 0.0, 1.0)), 0.0);',
-    '    vec2 r = ring(vP, uM[k], uE[k], uN[k], uL[k], uT[k], (float(k) + 0.5) / 8.0, uTh[k], uDTh[k], ch);',
+    '    vec2 r = ring(vP, uM[k], uE[k], uN[k], uL[k], uT[k], (float(k) + 0.5) / 8.0, uTh[k], uDTh[k], uThr[k], ch);',
     '    float spin = pow(p, 0.6);',
     '    float tone = (1.0 + spin * (-0.45 + 0.65 * r.y)) * (1.0 - 0.32 * pow(uAct, 0.6) * dot(shd, ch));',
     '    vec3 cc = clamp(uColor * tone + spin * 0.16 * pow(r.y, 14.0), 0.0, 1.0);',
@@ -172,13 +175,14 @@
     gl.uniform1f(U('uView'), VIEW);
     gl.uniform3fv(U('uColor'), rgb(getComputedStyle(svg).fill));
     gl.viewport(0, 0, cv.width, cv.height);
-    var uTh = U('uTh'), uDTh = U('uDTh'), uAct = U('uAct');
+    var uTh = U('uTh'), uDTh = U('uDTh'), uThr = U('uThr'), uAct = U('uAct');
     gl.uniform1f(U('uSpin'), SPIN);
     host.appendChild(cv);
     return {
       canvas: cv,
       draw: function (th, dth) {
         gl.uniform1fv(uTh, th); gl.uniform1fv(uDTh, dth || [0, 0, 0, 0]);
+        gl.uniform1fv(uThr, th.map(function (t) { return 1.05 - 0.55 * fillw(t / SPIN); }));
         var act = 0; for (var i = 0; i < 4; i++) act = Math.max(act, Math.sin(Math.PI * th[i] / SPIN));
         gl.uniform1f(uAct, act);
         gl.clearColor(0, 0, 0, 0); gl.clear(gl.COLOR_BUFFER_BIT); gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
@@ -190,6 +194,9 @@
     };
   }
 
+  function smooth(a, b, x) { var t = Math.min(1, Math.max(0, (x - a) / (b - a))); return t * t * (3 - 2 * t); }
+  // the plain stretch of each wheel takes grooves once it has left its resting place, and loses them as it arrives
+  function fillw(e) { return smooth(0, 0.22, e) * smooth(1, 0.78, e); }
   function ease(u) { return u * u * u * (u * (6 * u - 15) + 10); }
 
   function spin(svg, lead) {
