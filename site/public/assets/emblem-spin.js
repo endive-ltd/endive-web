@@ -1,21 +1,22 @@
 // The Endive emblem's spin.
 //
 // The emblem is four interlaced rings. Each ring is drawn as the tread of a wheel seen at an angle: its two pinched
-// ends are where the tread turns away round the back of the wheel. On arrival each ring, one after another, rolls
-// once on its axle like a tyre: the outline stays where it is while its grooves travel along the ring, following their
-// own curves, and pass under the next ring at its edge. The rings are lit as solid objects while they turn. When every
-// ring has come full circle the emblem is exactly the logo again.
+// ends are where the tread turns away round the back of the wheel. On arrival all four rings roll once on their
+// axles like tyres, starting a moment apart: each outline stays where it is while its grooves travel along the ring,
+// following their own curves, and pass under the next ring at its edge. The rings are lit as solid objects while they
+// turn, with a little motion blur. When every ring has come full circle the emblem is exactly the logo again.
 //
 // The grooves are the logo's own, sampled straight from the artwork into each wheel's coordinates (angle round the
-// wheel, position across the tread) and repeated round the part of the wheel the logo never shows
-// (emblem-rings.png). The borders between rings run along the front ring's own strands (emblem-windows.png). A WebGL
-// canvas laid over the emblem draws the turn; at rest it matches the SVG, and when the turn ends the canvas goes and
-// the plain SVG is left. No WebGL, reduced motion or a failed load: the emblem simply stays still.
+// wheel, position across the tread) and repeated evenly round the part of the wheel the logo never shows
+// (emblem-rings.png). Each border between rings starts at a notch in the outline, runs through the gap between the two
+// rings and follows the front ring's strands to a corner of the hole (emblem-windows.png); the four gaps belong to no
+// ring and never move. A WebGL canvas laid over the emblem draws the turn; at rest it matches the SVG, and when the
+// turn ends the canvas goes and the plain SVG is left. No WebGL, reduced motion or a failed load: the emblem stays still.
 (function () {
   var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)');
   var emblems = [].slice.call(document.querySelectorAll('svg.emblem.spin'));
   if (!emblems.length) return;
-  var DELAY = [0, 500, 1000, 1500], DUR = 1900, LEAD = 500, FADE = 200;
+  var DELAY = [0, 120, 240, 360], DUR = 2800, LEAD = 500, FADE = 200;
   var VIEW = 1200;          // half-size of the canvas in emblem units: the same box as the SVG
   var BASE = '/assets/';
 
@@ -40,7 +41,7 @@
     'varying vec2 vP;',
     'uniform sampler2D uRings, uWin, uTint, uRim, uShade;',
     'uniform vec2 uM[4], uE[4], uN[4], uLam[4];',
-    'uniform float uL[4], uTh[4], uAct;',
+    'uniform float uL[4], uTh[4], uDTh[4], uAct;',
     'uniform float uExt;',
     'uniform vec3 uColor;',
     'const float TAU = 6.2831853, PI = 3.1415927;',
@@ -57,7 +58,8 @@
     '}',
     // ring k at point q, rolled by th: returns (ink, light). The strand through q is the arc with sagitta lam; along
     // it, t is the angle round the wheel (phi = asin(2t - 1)); rolling moves the grooves along their arcs
-    'vec2 ring(vec2 q, vec2 M, vec2 E, vec2 N, float L, vec2 lr, float th, vec4 ch) {',
+    // dth: how far the wheel turned during this frame; the grooves are averaged over it (motion blur)
+    'vec2 ring(vec2 q, vec2 M, vec2 E, vec2 N, float L, vec2 lr, float th, float dth, vec4 ch) {',
     '  vec2 d = q - M; float a = dot(d, E); float b = dot(d, N);',
     '  if (abs(b) < 0.001) b = 0.001;',
     '  float kk = (a * a + b * b - L * L) / (2.0 * b); float R = sqrt(L * L + kk * kk);',
@@ -66,8 +68,12 @@
     '  if (t < 0.0 || t > 1.0) return vec2(0.0, 0.0);',
     '  float phi = asin(clamp(2.0 * t - 1.0, -1.0, 1.0));',
     '  float v = (lam - lr.x) / (lr.y - lr.x);',
-    '  float x = fract((phi - th + PI) / TAU);',
-    '  float ink = dot(texture2D(uRings, vec2(x, v)), ch);',
+    '  float ink = 0.0;',
+    '  for (int i = 0; i < 8; i++) {',
+    '    float x = fract((phi - (th - dth * float(i) / 7.0) + PI) / TAU);',
+    '    ink += dot(texture2D(uRings, vec2(x, v)), ch);',
+    '  }',
+    '  ink /= 8.0;',
     // lighting: the tread of a wheel tilted by GAM, curved across its width
     '  vec3 e3 = vec3(E, 0.0), b3 = vec3(-N, 0.0), z3 = vec3(0.0, 0.0, 1.0);',
     '  vec3 dm = sin(GAM) * z3 + cos(GAM) * b3, ax = cos(GAM) * z3 - sin(GAM) * b3;',
@@ -86,7 +92,7 @@
     '    vec4 ch = chan(k); float w = dot(win, ch); float wt = dot(tw, ch);',
     '    if (w < 0.002 && wt < 0.002) continue;',
     '    float p = max(sin(0.5 * clamp(uTh[k] / TAU, 0.0, 1.0) * TAU), 0.0);',
-    '    vec2 r = ring(vP, uM[k], uE[k], uN[k], uL[k], uLam[k], uTh[k], ch);',
+    '    vec2 r = ring(vP, uM[k], uE[k], uN[k], uL[k], uLam[k], uTh[k], uDTh[k], ch);',
     '    float spin = pow(p, 0.6);',
     '    float tone = (1.0 + spin * (-0.45 + 0.65 * r.y)) * (1.0 - 0.32 * pow(uAct, 0.6) * dot(shd, ch));',
     '    vec3 cc = clamp(uColor * tone + spin * 0.16 * pow(r.y, 14.0), 0.0, 1.0);',
@@ -151,12 +157,12 @@
     gl.uniform1f(U('uView'), VIEW);
     gl.uniform3fv(U('uColor'), rgb(getComputedStyle(svg).fill));
     gl.viewport(0, 0, cv.width, cv.height);
-    var uTh = U('uTh'), uAct = U('uAct');
+    var uTh = U('uTh'), uDTh = U('uDTh'), uAct = U('uAct');
     host.appendChild(cv);
     return {
       canvas: cv,
-      draw: function (th) {
-        gl.uniform1fv(uTh, th);
+      draw: function (th, dth) {
+        gl.uniform1fv(uTh, th); gl.uniform1fv(uDTh, dth || [0, 0, 0, 0]);
         var act = 0; for (var i = 0; i < 4; i++) act = Math.max(act, Math.sin(th[i] / 2));
         gl.uniform1f(uAct, act);
         gl.clearColor(0, 0, 0, 0); gl.clear(gl.COLOR_BUFFER_BIT); gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
@@ -181,18 +187,21 @@
       var layer;
       try { layer = makeLayer(svg, A); } catch (e) { return; }
       svg._layer = layer;
-      var th = [0, 0, 0, 0];
+      var th = [0, 0, 0, 0], dth = [0, 0, 0, 0], last = null;
       layer.draw(th);
       svg.style.visibility = 'hidden';
       var t0 = asked + lead, end = DELAY[3] + DUR;
       function frame(now) {
         if (svg._run !== run) return;
         var el = now - t0;
+        var step = last === null ? 16.7 : Math.min(50, Math.max(0, now - last)); last = now;
         for (var k = 0; k < 4; k++) {
           var u = Math.min(1, Math.max(0, (el - DELAY[k]) / DUR));
+          var u0 = Math.min(1, Math.max(0, (el - step * 0.7 - DELAY[k]) / DUR));
           th[k] = u >= 1 ? 0 : 2 * Math.PI * ease(u);
+          dth[k] = u >= 1 ? 0 : 2 * Math.PI * (ease(u) - ease(u0));
         }
-        layer.draw(th);
+        layer.draw(th, dth);
         if (el < end) { requestAnimationFrame(frame); return; }
         // hand back to the plain SVG
         svg.style.visibility = '';
