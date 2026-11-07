@@ -99,24 +99,15 @@ a:hover { color: var(--accent-strong); }
 .btn.on-band { background: #FFFFFF; color: var(--deep); }
 .btn.on-band:hover { background: var(--mint); color: var(--ink); }
 
-/* ---------- Emblem (the spinning rings) ----------
-   The icon is sliced into four concentric rings. On load each ring starts turned by a different amount, in alternating
-   directions, and settles into place with a small overshoot: outer ring first, centre last. It plays once. */
+/* ---------- Emblem ----------
+   Inline SVG of the exact icon. On arrival emblem-spin.js lays a canvas over it and rolls each of the four rings once
+   on its axle, like a tyre; then the canvas goes and the SVG is left. Without WebGL, or with reduced motion, it stays still. */
 .emblem { width: 100%; height: auto; fill: var(--emblem); overflow: visible; }
-.emblem .ring { transform-box: view-box; transform-origin: 0 0; }
-.emblem.spin { animation: emblem-in .8s cubic-bezier(.2, .7, .2, 1) both; }
-.emblem.spin .ring { animation: ring-lock var(--d) cubic-bezier(.2, 1.12, .32, 1) var(--delay, .12s) both; }
-.emblem .r3 { --from: 110deg; --d: 1.4s; }
-.emblem .r2 { --from: -160deg; --d: 1.7s; }
-.emblem .r1 { --from: 215deg; --d: 2s; }
-.emblem .r0 { --from: -280deg; --d: 2.3s; }
-
+.emblem.spin { animation: emblem-in .5s ease-out both; }
 .emblem.waiting { opacity: 0; }
-@keyframes ring-lock { from { transform: rotate(var(--from)); } to { transform: rotate(0deg); } }
-@keyframes emblem-in { from { opacity: 0; transform: scale(.9) rotate(-8deg); } to { opacity: 1; transform: none; } }
-@media (prefers-reduced-motion: reduce) {
-  .emblem.spin, .emblem.spin .ring { animation: none; }
-}
+.emblem-gl { position: absolute; pointer-events: none; display: block; }
+@keyframes emblem-in { from { opacity: 0; } to { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .emblem.spin { animation: none; } }
 
 /* ---------- Reveal on scroll (only when JS runs) ---------- */
 .js .reveal { opacity: 0; transform: translateY(18px); transition: opacity .7s cubic-bezier(.2, .7, .2, 1), transform .7s cubic-bezier(.2, .7, .2, 1); }
