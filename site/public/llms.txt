@@ -1,0 +1,19 @@
+# Endive Limited
+
+> Endive Limited is an Irish company of two engineers in Dublin, building software for the small, annoying problems of everyday life. It makes Tab, a receipts app, and Soft Spot, personalised digital presents made from your own photos.
+
+Contact: hello@endive.ie
+
+## Products
+
+- [Tab](https://tabreceipts.com/): a free receipts app for iPhone and Android, with no ads, launching soon. Take a photo of a receipt and Tab reads the shop, the date, the total and every item; find any receipt again, see where your money goes, and split a bill item by item, even with friends who don't have the app. Facts for agents: https://tabreceipts.com/llms.txt
+- [Soft Spot](https://www.softspotgifts.com/): personalised digital presents made from your own photos and messages, launching November 2026. The first is the Mosaic: hundreds of your photos forming one picture you can zoom into, tile by tile. Facts for agents: https://www.softspotgifts.com/llms.txt
+
+## Pages
+
+- [Home](https://endive.ie/): who we are, what we make, and how to reach us.
+- [Brand](https://endive.ie/brand/): the Endive logo, colours and type, with files to download.
+
+## Company
+
+Endive Limited, a private company limited by shares, registered in Ireland, company number 828414. Registered office: 10 Nutley Lane, Donnybrook, Dublin 4, D04 X3D0, Ireland. Tab and Soft Spot are trading names of Endive Limited.
