@@ -1,9 +1,25 @@
-// Forwards hello@endive.ie, admin@endive.ie and hello@softspotgifts.com to both founders.
+// Forwards Endive's addresses (mark@, admin@, dev@, hello@endive.ie and hello@softspotgifts.com) to the founders,
+// keeps every message in R2, and rescues forwards Gmail refuses. See src/index.js.
 // The routing rules that point at this Worker live in Email Routing on each zone, not here.
 {
   // ---------- Worker ----------
   "name": "endive-hello-forward",
   "main": "src/index.js",
   "compatibility_date": "2026-10-27",
-  "account_id": "52e65a2366c205fa0ea36ef06adf6262"
+  "account_id": "52e65a2366c205fa0ea36ef06adf6262",
+  "observability": { "enabled": true },
+  // An email Worker needs no web address.
+  "workers_dev": false,
+  "preview_urls": false,
+
+  // ---------- Bindings ----------
+  // Every message lands here first: inbox/YYYY/MM/DD/<address>/..., and refused forwards also under failed/...
+  "r2_buckets": [{ "binding": "ARCHIVE", "bucket_name": "endive-mail-archive" }],
+  // Sends "Missed email" copies to the founders' verified Gmail addresses.
+  "send_email": [
+    {
+      "name": "EMAIL",
+      "allowed_destination_addresses": ["markturley123@gmail.com", "thomaspaulharan@gmail.com"]
+    }
+  ]
 }
