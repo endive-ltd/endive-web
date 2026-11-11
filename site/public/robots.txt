@@ -1,0 +1,7 @@
+# endive.ie: every page is public, for search engines and AI agents alike.
+# Content-Signal (contentsignals.org): the words may be used for search, for AI answers and for training.
+User-agent: *
+Content-Signal: search=yes, ai-input=yes, ai-train=yes
+Allow: /
+
+Sitemap: https://endive.ie/sitemap.xml
