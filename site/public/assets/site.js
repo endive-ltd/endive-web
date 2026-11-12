@@ -9,34 +9,7 @@
   window.addEventListener('scroll', onScroll, { passive: true });
   onScroll();
 
-  // Replay the emblem's ring animation when someone clicks it (it plays once on load by itself).
-  function replay(svg) {
-    svg.classList.remove('spin');
-    void svg.getBoundingClientRect();
-    svg.classList.add('spin');
-  }
-  document.querySelectorAll('[data-replay]').forEach(function (btn) {
-    btn.addEventListener('click', function () {
-      var target = document.getElementById(btn.getAttribute('data-replay'));
-      if (target) replay(target);
-    });
-  });
-
-  // An emblem that starts below the fold waits until it is on screen, so its one spin isn't missed.
-  if ('IntersectionObserver' in window) {
-    var eo = new IntersectionObserver(function (entries) {
-      entries.forEach(function (e) {
-        if (e.isIntersecting) { e.target.classList.remove('waiting'); e.target.classList.add('spin'); eo.unobserve(e.target); }
-      });
-    }, { threshold: 0.35 });
-    document.querySelectorAll('svg.emblem.spin').forEach(function (svg) {
-      if (svg.getBoundingClientRect().top > window.innerHeight) {
-        svg.classList.remove('spin');
-        svg.classList.add('waiting');
-        eo.observe(svg);
-      }
-    });
-  }
+  // The emblem's spin lives in emblem-spin.js.
 
   // Fade sections in as they scroll into view.
   var items = document.querySelectorAll('.reveal');
