@@ -1,9 +1,0 @@
-// Forwards hello@endive.ie, admin@endive.ie and hello@softspotgifts.com to both founders.
-// The routing rules that point at this Worker live in Email Routing on each zone, not here.
-{
-  // ---------- Worker ----------
-  "name": "endive-hello-forward",
-  "main": "src/index.js",
-  "compatibility_date": "2026-10-27",
-  "account_id": "52e65a2366c205fa0ea36ef06adf6262"
-}
