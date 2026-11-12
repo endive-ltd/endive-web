@@ -19,13 +19,10 @@ The logo, emblem, colours and type are documented at [endive.ie/brand](https://e
 
 - **Site:** automatic. Cloudflare Workers Builds is connected to this repo (27 Oct 2026): every push to `main` runs
   `npx wrangler deploy` in `site/` and updates `endive.ie` and `www.endive.ie`. Other branches only upload preview versions, and Preview URLs are off, so nothing but `main` reaches the domains.
-- **Email forwarder:** by hand only, never on push, because it carries the founders' mail. From `email-forwarder/`:
-  `npx wrangler login` as a member of the Endive account, then `npx wrangler deploy`. Send a test email to
-  hello@endive.ie and admin@endive.ie straight after.
+- **Email forwarder:** not here. It is in the private `endive-ltd/endive-ops` repository, deployed by hand from there.
 
 ## Rules
 
 - Only registered business names appear as brands or trading names on the site (Tab and Soft Spot; Foundry once its RBN1 is filed, decision 26 Oct 2026).
 - The footer keeps the s.151 particulars: name, "private company limited by shares", registered in Ireland, number 828414, registered office.
-- No secrets in this repo. The forwarder needs none; both destination Gmails must stay verified under Email Routing, Destination addresses.
-- The forwarder source was recovered from the deployed Worker on 27 Oct 2026; Mark wrote it.
+- No secrets in this repo.
