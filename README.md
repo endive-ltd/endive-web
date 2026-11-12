@@ -1,11 +1,10 @@
 # endive-web
 
-Endive Limited's company page and email forwarder, both Workers on the Endive Cloudflare account (`52e65a2366c205fa0ea36ef06adf6262`). Private repo; moves to the company GitHub organisation when it exists.
+Endive Limited's company page, a Worker on the Endive Cloudflare account (`52e65a2366c205fa0ea36ef06adf6262`). The email forwarder moved to the private `endive-ltd/endive-ops` repository on 2026-11-12.
 
 | Folder | Worker | What |
 |---|---|---|
 | `site/` | `endive-website` | The company site on `endive.ie` and `www.endive.ie`: the home page (Tab and Soft Spot, the name story, contact hello@endive.ie), the brand guidelines at `/brand/`, and the s.151 company particulars in every footer |
-| `email-forwarder/` | `endive-hello-forward` | Copies mail for hello@endive.ie, admin@endive.ie and hello@softspotgifts.com to both founders' Gmails |
 
 ## Brand
 
