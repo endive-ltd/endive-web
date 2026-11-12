@@ -189,7 +189,8 @@
     gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer());
     gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]), gl.STATIC_DRAW);
     var loc = gl.getAttribLocation(prog, 'p'); gl.enableVertexAttribArray(loc); gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
-    texture(gl, A.rings, 0, true); texture(gl, A.win, 1, false); texture(gl, A.tint, 2, false); texture(gl, A.rim, 3, false);
+    // no REPEAT on the groove texture: it isn't a power of two, which WebGL 1 on phones refuses; the shader wraps it itself
+    texture(gl, A.rings, 0, false); texture(gl, A.win, 1, false); texture(gl, A.tint, 2, false); texture(gl, A.rim, 3, false);
     texture(gl, A.shade, 4, false); texture(gl, A.edges, 5, false, true);
     var U = function (n) { return gl.getUniformLocation(prog, n); };
     gl.uniform1i(U('uRings'), 0); gl.uniform1i(U('uWin'), 1); gl.uniform1i(U('uTint'), 2); gl.uniform1i(U('uRim'), 3);
@@ -221,6 +222,15 @@
         gl.uniform1f(uAct, act);
         gl.clearColor(0, 0, 0, 0); gl.clear(gl.COLOR_BUFFER_BIT); gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
       },
+      // share of each quarter of the canvas that the frame just drawn covers (read straight after drawing)
+      coverage: function () {
+        var w = cv.width, h = cv.height, px = new Uint8Array(w * h * 4), q = [0, 0, 0, 0], n = [0, 0, 0, 0];
+        gl.readPixels(0, 0, w, h, gl.RGBA, gl.UNSIGNED_BYTE, px);
+        for (var y = 0; y < h; y += 3) for (var x = 0; x < w; x += 3) {
+          var j = (y < h / 2 ? 0 : 2) + (x < w / 2 ? 0 : 1); n[j]++; if (px[(y * w + x) * 4 + 3] > 127) q[j]++;
+        }
+        return q.map(function (v, i) { return v / n[i]; });
+      },
       destroy: function () {
         var ext = gl.getExtension('WEBGL_lose_context'); if (ext) ext.loseContext();
         if (cv.parentNode) cv.parentNode.removeChild(cv);
@@ -246,6 +256,12 @@
       svg._layer = layer;
       var th = [0, 0, 0, 0], dth = [0, 0, 0, 0], last = null;
       layer.draw(th);
+      // the rest frame must look like the logo: the emblem is four-fold, so every quarter is about equally covered.
+      // A device whose graphics chip gets this wrong keeps the plain SVG instead
+      var cq = layer.coverage(), mq = (cq[0] + cq[1] + cq[2] + cq[3]) / 4;
+      if (!(mq > 0.2 && mq < 0.6) || cq.some(function (v) { return Math.abs(v - mq) > 0.25 * mq; })) {
+        layer.destroy(); svg._layer = null; return;
+      }
       svg.style.visibility = 'hidden';
       var t0 = asked + lead, end = DELAY[3] + DUR;
       function frame(now) {
