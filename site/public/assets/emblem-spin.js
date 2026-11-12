@@ -10,7 +10,7 @@
 // the ring as they travel. Each wheel carries the logo's own groove set three times, 120 degrees apart, so a third of
 // a turn brings an identical set exactly into the logo's place (emblem-rings.webp). Grooves are stored as distance
 // fields: at rest the logo's exact outlines; while rolling they morph into a smoothed set (smooth centre lines and
-// widths, tapered tips, and extra grooves over the logo's plain stretch) so every groove stays clean as it travels. Lighting is per ring with crisp
+// widths, tapered tips) so every groove stays clean as it travels. Filler grooves for the logo's plain stretch ride on a layer of their own: tucked under the ring's folds at rest, they glide out from under one fold and away under the other. Lighting is per ring with crisp
 // borders between rings (emblem-tint.png). Each border between rings starts at a notch in the outline, runs through the gap between the two
 // rings and follows the front ring's strands to a corner of the hole (emblem-windows.png); the four gaps belong to no
 // ring and never move. A WebGL canvas laid over the emblem draws the turn; at rest it matches the SVG, and when the
@@ -45,21 +45,15 @@
     'uniform sampler2D uRings, uWin, uTint, uRim, uShade, uEdges;',
     'uniform vec2 uM[4], uE[4], uN[4], uT[4];',
     'uniform float uLmin, uLmax, uPhm; uniform vec2 uU;',
-    'uniform float uL[4], uTh[4], uDTh[4], uW[4], uAct, uSpin, uRng, uPx;',
+    'uniform float uL[4], uTh[4], uDTh[4], uW[4], uCut[4], uAct, uSpin, uRng, uPx;',
+    'uniform vec4 uFill[4];',
     'uniform float uExt;',
     'uniform vec3 uColor;',
     'const float TAU = 6.2831853, PI = 3.1415927;',
     'const vec3 LIGHT = vec3(-0.4682, -0.6763, 0.5684);',
-    'const float GAM = 0.8378, PSI = 1.1345;',      // wheel tilt 48 deg; tread curves 65 deg either side
+    'const float GAM = 0.8378, PSI = 1.1345, THA = 0.8727;',      // wheel tilt 48 deg; tread curves 65 deg either side
     'float dec(vec2 hl) { return (hl.x * 65280.0 + hl.y * 255.0) / 65535.0; }',
     'vec4 chan(int k) { return vec4(k == 0 ? 1.0 : 0.0, k == 1 ? 1.0 : 0.0, k == 2 ? 1.0 : 0.0, k == 3 ? 1.0 : 0.0); }',
-    'float aaw(float d) {',
-    '#ifdef DERIV',
-    '  return max(fwidth(d), 0.05);',
-    '#else',
-    '  return uPx;',
-    '#endif',
-    '}',
     'vec2 uvOf(vec2 q) { return (q + uExt) / (2.0 * uExt); }',
     // position along the arc through the ring's two ends, measured from the first end (0) to the second (1)
     'float arcT(float a, float b, float lam, float kk, float L) {',
@@ -73,7 +67,7 @@
     // visible ring is the front of a wheel; the grooves move at an even pace along it (phi = (2 tau - 1) PHM) so they keep
     // the logo's slope, while the lighting follows the wheel's true shape. Rolling the wheel slides the surface
     // along the ring, so grooves keep their place across it while they travel
-    'vec2 ring(vec2 q, vec2 M, vec2 E, vec2 N, float L, vec2 tr, float row, float th, float dth, float wm, vec4 ch) {',
+    'vec2 ring(vec2 q, vec2 M, vec2 E, vec2 N, float L, vec2 tr, float row, float th, float dth, float wm, vec4 ch, vec4 fl, float cut) {',
     '  vec2 d = q - M; float a = dot(d, E); float b = dot(d, N);',
     '  if (abs(b) < 0.001) b = 0.001;',
     '  float kk = (a * a + b * b - L * L) / (2.0 * b); float R = sqrt(L * L + kk * kk);',
@@ -88,16 +82,38 @@
     '  float w = ed.y - ed.x; float u = (lam - ed.x) / (abs(w) < 0.001 ? 0.001 : w);',
     '  float phi = (2.0 * sg - 1.0) * uPhm;',
     '  float phl = asin(clamp(2.0 * sg - 1.0, -1.0, 1.0) * sin(uPhm));',
-    '  float y = clamp((u - uU.x) / (uU.y - uU.x), 0.5 / 320.0, 1.0 - 0.5 / 320.0) * 0.5;',
+    '  float y = clamp((u - uU.x) / (uU.y - uU.x), 0.5 / 320.0, 1.0 - 0.5 / 320.0) / 3.0;',
+    // edge softness from the ring grid itself (smooth), so outlines are one crisp pixel at any size and a groove that
+    // is just opening draws as a clean fine line
+    '  float aw = uPx;',
+    '#ifdef DERIV',
+    '  float ca = phi * 1145.916, cb = (u - uU.x) / (uU.y - uU.x) * 435.2;',
+    '  vec2 ga = vec2(dFdx(ca), dFdy(ca)), gb = vec2(dFdx(cb), dFdy(cb));',
+    '  aw = clamp(sqrt(0.5 * (dot(ga, ga) + dot(gb, gb))), 0.4 * uPx, 3.0 * uPx);',
+    '#endif',
     '  float ink = 0.0;',
     '  for (int i = 0; i < 8; i++) {',
-    '    float xx = fract((phi - (th - dth * float(i) / 7.0) + PI) / TAU);',
-    // groove outlines as distance fields: the logo's own at rest, morphing into smooth rolling grooves (which also
-    // fill the logo's plain stretch) while the wheel turns; drawn with a crisp one-pixel edge at any size
+    // The set of grooves in place keeps its place on the wheel. The next set, and the filler grooves that ride in the
+    // plain stretch between the two, start tucked under the fold at the ring's start: they glide out and catch up
+    // (trailing by `back`), ride with the wheel, and the fillers then glide away under the fold at the ring's end
+    // before the wheel stops. So nothing ever appears or vanishes in the open, and rest is exactly the logo.
+    '    float tb = th - dth * float(i) / 7.0, sb = phi - tb;',
+    '    float back = fl.x * (1.0 - smoothstep(0.0, THA, tb));',
+    '    float ef = back - fl.y * smoothstep(PI / 3.0 - fl.z + 0.01745, uSpin, tb);',
+    '    float sm = sb >= cut ? sb : sb + back;',
+    '    float xx = fract((sm + PI) / TAU);',
+    // groove outlines as distance fields: the logo's own at rest, easing into the same grooves smoothed while the
+    // wheel turns; drawn with a crisp one-pixel edge at any size
     '    float ga = dot(texture2D(uRings, vec2(xx, y)), ch);',
-    '    if (wm > 0.0) ga = mix(ga, dot(texture2D(uRings, vec2(xx, y + 0.5)), ch), wm);',
+    '    if (wm > 0.0) ga = mix(ga, dot(texture2D(uRings, vec2(xx, y + 1.0 / 3.0)), ch), wm);',
     '    float gd = ((ga * 255.0 - 1.0) / 254.0 - 0.5) * 2.0 * uRng;',
-    '    ink += clamp(0.5 + gd / (1.1 * aaw(gd)), 0.0, 1.0);',
+    '    if (sb < cut && sm >= cut) gd = uRng;',
+    '    float sf = sb + ef;',
+    '    if (sf > fl.w && sf < fl.z) {',
+    '      float fa = dot(texture2D(uRings, vec2(fract((sf + PI) / TAU), y + 2.0 / 3.0)), ch);',
+    '      gd = min(gd, ((fa * 255.0 - 1.0) / 254.0 - 0.5) * 2.0 * uRng);',
+    '    }',
+    '    ink += clamp(0.5 + gd / (1.1 * aw), 0.0, 1.0);',
     '  }',
     '  ink /= 8.0;',
     // lighting: the tread of a wheel tilted by GAM, curved across its width
@@ -118,7 +134,7 @@
     '    vec4 ch = chan(k); float w = dot(win, ch); float wt = dot(tw, ch);',
     '    if (w < 0.002 && wt < 0.002) continue;',
     '    float p = max(sin(PI * clamp(uTh[k] / uSpin, 0.0, 1.0)), 0.0);',
-    '    vec2 r = ring(vP, uM[k], uE[k], uN[k], uL[k], uT[k], (float(k) + 0.5) / 8.0, uTh[k], uDTh[k], uW[k], ch);',
+    '    vec2 r = ring(vP, uM[k], uE[k], uN[k], uL[k], uT[k], (float(k) + 0.5) / 8.0, uTh[k], uDTh[k], uW[k], ch, uFill[k], uCut[k]);',
     '    float spin = pow(p, 0.6);',
     '    float tone = (1.0 + spin * (-0.45 + 0.65 * r.y)) * (1.0 - 0.32 * pow(uAct, 0.6) * dot(shd, ch));',
     '    vec3 cc = clamp(uColor * tone + spin * 0.16 * pow(r.y, 14.0), 0.0, 1.0);',
@@ -183,6 +199,9 @@
     gl.uniform2fv(U('uM'), flat('M')); gl.uniform2fv(U('uE'), flat('e')); gl.uniform2fv(U('uN'), flat('n'));
     gl.uniform1fv(U('uL'), g.map(function (x) { return x.L; }));
     gl.uniform2fv(U('uT'), flat('t'));
+    var rad = Math.PI / 180;
+    gl.uniform4fv(U('uFill'), [].concat.apply([], g.map(function (x) { return x.fill.map(function (v) { return v * rad; }); })));
+    gl.uniform1fv(U('uCut'), g.map(function (x) { return x.cut * rad; }));
     gl.uniform1f(U('uLmin'), A.geo.lmin); gl.uniform1f(U('uLmax'), A.geo.lmax);
     gl.uniform2fv(U('uU'), A.geo.u); gl.uniform1f(U('uPhm'), A.geo.phm * Math.PI / 180);
     gl.uniform1f(U('uExt'), A.geo.ext);
