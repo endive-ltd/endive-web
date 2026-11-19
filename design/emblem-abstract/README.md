@@ -10,3 +10,9 @@ straight cuts with an even band weight and real over/under where bands cross.
   - `tiles`: Linked Tiles, `rings`: Two Rings, `trefoil`: Trefoil.
 
 The live brand pack is unchanged.
+
+## Round 11: The Joint
+
+- `shapes2.py`: less-archetypal sketches (all dropped).
+- `joint.py`: the dovetail-joint family; `final_joint.py` builds the four finals.
+- `svg/endive-mark-joint*.svg`: `joint` (recommended disc), `jtile`, `jpill`, `jshift`.
