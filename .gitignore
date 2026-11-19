@@ -151,3 +151,7 @@ vite.config.ts.timestamp-*
 # Wrangler
 .wrangler/
 node_modules/
+
+# Python bytecode caches
+__pycache__/
+*.pyc
